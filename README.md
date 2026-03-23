@@ -1,35 +1,49 @@
 # Pulseboard
 
-<p align="center">
-  <img src="https://img.shields.io/badge/SwiftUI-app-orange?logo=swift">
-  <img src="https://img.shields.io/badge/Platform-multiplatform-blue">
-</p>
-
 ## Overview
-Pulseboard is a SwiftUI app scaffold created by **ProjectPilot**. This README is intentionally minimal and will grow as the project evolves.
+Pulseboard is a map-first iPhone + iPad SwiftUI app for exploring live natural events from direct public feeds.
 
-- Template profile: **Starter App**
+Current V1 foundation:
+- Real-time USGS earthquake integration (no mock runtime data).
+- Unified event/domain models for multi-source expansion.
+- Region, category, and time-window filtering.
+- Layered map UI with chips, summary cards, clustered markers, and featured event panel.
 
 ## Requirements
-- macOS with Xcode installed
-- Swift / SwiftUI
+- Xcode 17+ (Swift 6 toolchain)
+- iOS/iPadOS Simulator or device
 
 ## Getting Started
 1. Open `Pulseboard.xcodeproj`
-2. Select a destination (Mac, iPhone Simulator, etc.)
+2. Select an iOS Simulator destination
 3. Build and Run
+
+### Build
+```bash
+xcodebuild -scheme Pulseboard -configuration Debug -destination 'generic/platform=iOS Simulator' build
+```
+
+### Unit tests
+```bash
+xcodebuild -scheme Pulseboard -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:PulseboardTests test
+```
 
 ## Project Structure
 ```text
 Pulseboard/
 ├── Pulseboard/
+│   ├── App/
+│   ├── Core/
+│   ├── Domain/
+│   ├── Features/
+│   └── Services/
 ├── PulseboardTests/
 └── PulseboardUITests/
 ```
 
 ## Roadmap
-- [ ] Define app goals and core flows
-- [ ] Add real UI and data model
-- [ ] Add tests for key behaviors
-## Credits
-Created with **ProjectPilot**.
+- [x] Phase 1: architecture + design tokens + live USGS map foundation
+- [ ] Phase 2: Event detail + deeper filter behavior
+- [ ] Phase 3: EONET integration
+- [ ] Phase 4: GDACS integration
+- [ ] Phase 5: NWS alerts + region polish

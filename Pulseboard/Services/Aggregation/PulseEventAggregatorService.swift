@@ -8,10 +8,19 @@ struct PulseSourceFailure: Sendable, Hashable {
 struct PulseEventAggregationResult: Sendable {
     let events: [PulseEvent]
     let failures: [PulseSourceFailure]
+    let successfulSourceCount: Int
 
     var hasFailures: Bool {
         !failures.isEmpty
     }
+
+    var hasSuccessfulSources: Bool {
+        successfulSourceCount > 0
+    }
+}
+
+enum PulseRuntimeSources {
+    static let activeSources: [PulseSource] = [.usgs, .eonet]
 }
 
 actor PulseEventAggregatorService {
@@ -41,10 +50,12 @@ actor PulseEventAggregatorService {
 
             var collectedEvents: [PulseEvent] = []
             var failures: [PulseSourceFailure] = []
+            var successfulSourceCount = 0
 
             for await outcome in group {
                 switch outcome {
                 case let .success(source, events):
+                    successfulSourceCount += 1
                     // Prefix source into IDs to prevent collisions across feeds.
                     collectedEvents.append(contentsOf: events.map { event in
                         PulseEvent(
@@ -74,7 +85,8 @@ actor PulseEventAggregatorService {
 
             return PulseEventAggregationResult(
                 events: sorted,
-                failures: failures.sorted { $0.source.rawValue < $1.source.rawValue }
+                failures: failures.sorted { $0.source.rawValue < $1.source.rawValue },
+                successfulSourceCount: successfulSourceCount
             )
         }
     }

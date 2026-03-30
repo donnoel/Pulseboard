@@ -43,6 +43,8 @@ final class PulseMapViewModel: ObservableObject {
     private let eventAggregator: PulseEventAggregatorService
     private let logger = Logger(subsystem: "dn.pulseboard", category: "PulseMapViewModel")
     private var allEvents: [PulseEvent] = []
+    private var refreshTask: Task<PulseEventAggregationResult, Never>?
+    private var refreshRequestID: UInt64 = 0
 
     init(eventAggregator: PulseEventAggregatorService = PulseEventAggregatorService()) {
         self.eventAggregator = eventAggregator
@@ -68,35 +70,45 @@ final class PulseMapViewModel: ObservableObject {
     }
 
     func refresh() async {
-        guard !isLoading else {
+        refreshTask?.cancel()
+        refreshRequestID &+= 1
+        let requestID = refreshRequestID
+        let targetTimeWindow = selectedTimeWindow
+        isLoading = true
+
+        let task = Task { [eventAggregator] in
+            await eventAggregator.fetchEvents(in: targetTimeWindow)
+        }
+        refreshTask = task
+        let result = await task.value
+
+        guard requestID == refreshRequestID else {
             return
         }
 
-        isLoading = true
-        defer { isLoading = false }
-
-        let result = await eventAggregator.fetchEvents(in: selectedTimeWindow)
+        refreshTask = nil
+        isLoading = false
 
         if result.hasFailures {
             let failedSources = result.failures.map { $0.source.title }.joined(separator: ", ")
             logger.error("Some source feeds failed: \(failedSources, privacy: .public)")
-            errorMessage = result.events.isEmpty
-                ? "Live event feeds are temporarily unavailable (\(failedSources)). Pull to retry."
-                : "Some feeds are unavailable (\(failedSources)). Showing available live data."
+            errorMessage = result.hasSuccessfulSources
+                ? "Some feeds are unavailable (\(failedSources)). Showing available live data."
+                : "Live event feeds are temporarily unavailable (\(failedSources)). Pull to retry."
         } else {
             errorMessage = nil
         }
 
-        if !result.events.isEmpty {
-            allEvents = result.events
-            lastUpdated = Date.now
-            applyFilters()
+        guard result.hasSuccessfulSources else {
+            if filteredEvents.isEmpty {
+                metrics = .empty
+            }
             return
         }
 
-        if filteredEvents.isEmpty {
-            metrics = .empty
-        }
+        allEvents = result.events
+        lastUpdated = Date.now
+        applyFilters()
     }
 
     func dismissError() {

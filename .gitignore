@@ -4,6 +4,7 @@ xcuserdata/
 *.xcuserstate
 *.xccheckout
 *.xcscmblueprint
+*.xcodeproj/xcshareddata/
 
 # SwiftPM
 .build/

@@ -1,12 +1,42 @@
 import MapKit
 import SwiftUI
 
+private enum PhoneHighlightsDrawerState: Int, CaseIterable {
+    case collapsed
+    case peek
+    case expanded
+
+    func nextExpandedState() -> PhoneHighlightsDrawerState {
+        switch self {
+        case .collapsed:
+            .peek
+        case .peek:
+            .expanded
+        case .expanded:
+            .expanded
+        }
+    }
+
+    func nextCollapsedState() -> PhoneHighlightsDrawerState {
+        switch self {
+        case .collapsed:
+            .collapsed
+        case .peek:
+            .collapsed
+        case .expanded:
+            .peek
+        }
+    }
+}
+
 struct PulseMapView: View {
     @StateObject private var viewModel: PulseMapViewModel
     @State private var cameraPosition: MapCameraPosition
     @State private var selectedMapItem: PulseMapItem?
     @State private var isFilterTrayExpanded = false
     @State private var isExplorePresented = false
+    @State private var phoneDrawerState: PhoneHighlightsDrawerState = .peek
+    @GestureState private var phoneDrawerDragTranslation: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(viewModel: PulseMapViewModel = PulseMapViewModel()) {
@@ -24,7 +54,7 @@ struct PulseMapView: View {
                 if isWideLayout(for: geometry.size) {
                     iPadSidePanel
                 } else {
-                    iPhoneBottomPanel
+                    iPhoneBottomPanel(in: geometry)
                 }
 
                 if viewModel.isLoading, viewModel.filteredEvents.isEmpty {
@@ -236,19 +266,58 @@ struct PulseMapView: View {
         }
     }
 
-    private var iPhoneBottomPanel: some View {
-        VStack {
+    private func iPhoneBottomPanel(in geometry: GeometryProxy) -> some View {
+        let safeBottomInset = max(PulseSpacing.small, geometry.safeAreaInsets.bottom)
+        let collapsedHeight = phoneDrawerHeight(for: .collapsed, in: geometry.size.height, safeBottomInset: safeBottomInset)
+        let targetHeight = phoneDrawerHeight(for: phoneDrawerState, in: geometry.size.height, safeBottomInset: safeBottomInset)
+        let dragAdjustment = max(0, phoneDrawerDragTranslation)
+        let effectiveHeight = max(collapsedHeight, targetHeight - dragAdjustment)
+
+        return VStack {
             Spacer()
 
-            PulseHighlightsPanel(
-                events: viewModel.featuredEvents,
-                lastUpdated: viewModel.lastUpdated,
-                maxSecondaryEvents: 2,
-                onSelect: presentEvent,
-                onExplore: { isExplorePresented = true }
-            )
+            VStack(alignment: .leading, spacing: PulseSpacing.small) {
+                Capsule(style: .continuous)
+                    .fill(.white.opacity(0.34))
+                    .frame(width: 44, height: 5)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, PulseSpacing.tiny)
+
+                PulseHighlightsPanel(
+                    events: viewModel.featuredEvents,
+                    lastUpdated: viewModel.lastUpdated,
+                    maxSecondaryEvents: phoneDrawerState == .expanded ? 2 : 1,
+                    displayMode: panelDisplayMode,
+                    onSelect: presentEvent,
+                    onExplore: { isExplorePresented = true }
+                )
+                .frame(maxHeight: .infinity, alignment: .top)
+            }
             .padding(.horizontal, PulseSpacing.medium)
-            .padding(.bottom, PulseSpacing.medium)
+            .padding(.bottom, safeBottomInset)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .frame(height: effectiveHeight, alignment: .top)
+            .background {
+                RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                    }
+            }
+            .padding(.horizontal, PulseSpacing.small)
+            .contentShape(RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous))
+            .gesture(phoneDrawerGesture)
+            .onTapGesture {
+                guard phoneDrawerState == .collapsed else {
+                    return
+                }
+                setPhoneDrawerState(.peek)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Pulse Highlights Drawer")
+            .accessibilityHint("Drag up to expand, drag down to collapse")
+            .animation(.spring(response: 0.3, dampingFraction: 0.86), value: phoneDrawerState)
         }
         .ignoresSafeArea(edges: .bottom)
     }
@@ -261,6 +330,7 @@ struct PulseMapView: View {
                 events: viewModel.featuredEvents,
                 lastUpdated: viewModel.lastUpdated,
                 maxSecondaryEvents: 4,
+                displayMode: .expanded,
                 onSelect: presentEvent,
                 onExplore: { isExplorePresented = true }
             )
@@ -300,6 +370,55 @@ struct PulseMapView: View {
 
     private func isWideLayout(for size: CGSize) -> Bool {
         size.width >= 900
+    }
+
+    private var panelDisplayMode: PulseHighlightsPanel.DisplayMode {
+        switch phoneDrawerState {
+        case .collapsed:
+            .collapsed
+        case .peek:
+            .peek
+        case .expanded:
+            .expanded
+        }
+    }
+
+    private var phoneDrawerGesture: some Gesture {
+        DragGesture(minimumDistance: 10)
+            .updating($phoneDrawerDragTranslation) { value, state, _ in
+                state = value.translation.height
+            }
+            .onEnded { value in
+                let dragDistance = value.translation.height
+                if dragDistance <= -65 {
+                    setPhoneDrawerState(phoneDrawerState.nextExpandedState())
+                } else if dragDistance >= 65 {
+                    setPhoneDrawerState(phoneDrawerState.nextCollapsedState())
+                }
+            }
+    }
+
+    private func setPhoneDrawerState(_ state: PhoneHighlightsDrawerState) {
+        let update = {
+            phoneDrawerState = state
+        }
+
+        if reduceMotion {
+            update()
+        } else {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.86), update)
+        }
+    }
+
+    private func phoneDrawerHeight(for state: PhoneHighlightsDrawerState, in screenHeight: CGFloat, safeBottomInset: CGFloat) -> CGFloat {
+        switch state {
+        case .collapsed:
+            return 76 + safeBottomInset
+        case .peek:
+            return min(232, max(196, screenHeight * 0.28)) + safeBottomInset
+        case .expanded:
+            return min(470, max(320, screenHeight * 0.56)) + safeBottomInset
+        }
     }
 
     private func updateCamera(for region: PulseRegion) {
@@ -456,74 +575,123 @@ private struct PulseFeaturedEventCard: View {
 }
 
 private struct PulseHighlightsPanel: View {
+    enum DisplayMode {
+        case collapsed
+        case peek
+        case expanded
+    }
+
     let events: [PulseEvent]
     let lastUpdated: Date?
     let maxSecondaryEvents: Int
+    let displayMode: DisplayMode
     let onSelect: (PulseEvent) -> Void
     let onExplore: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PulseSpacing.medium) {
-            Capsule(style: .continuous)
-                .fill(.white.opacity(0.34))
-                .frame(width: 44, height: 5)
-                .frame(maxWidth: .infinity)
-
+        VStack(alignment: .leading, spacing: displayMode == .collapsed ? PulseSpacing.tiny : PulseSpacing.medium) {
             HStack {
                 Text("Pulse Highlights")
-                    .font(.headline.weight(.semibold))
+                    .font(displayMode == .collapsed ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
                     .foregroundStyle(.white)
                 Spacer()
-                if let lastUpdated {
+                if displayMode != .collapsed, let lastUpdated {
                     Text(lastUpdated, style: .time)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.white.opacity(0.7))
+                } else {
+                    Text("\(events.count)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.76))
+                }
+
+                if displayMode == .collapsed {
+                    Image(systemName: "chevron.up")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.76))
                 }
             }
 
-            if let primary = events.first {
-                PulseFeaturedEventCard(event: primary, compact: false)
-                    .onTapGesture {
-                        onSelect(primary)
-                    }
-            } else {
-                Text("No highlights for this region and filter set.")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.72))
-                    .pulseGlassCard()
-            }
+            switch displayMode {
+            case .collapsed:
+                Text(events.isEmpty ? "No live signals" : "\(events.count) live signals")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.74))
+            case .peek:
+                if let primary = events.first {
+                    PulseSecondaryHighlightCard(event: primary)
+                        .onTapGesture {
+                            onSelect(primary)
+                        }
+                } else {
+                    Text("No highlights for this region and filter set.")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                }
+                if let secondary = events.dropFirst().first {
+                    PulseSecondaryHighlightCard(event: secondary)
+                        .onTapGesture {
+                            onSelect(secondary)
+                        }
+                }
+                Button {
+                    onExplore()
+                } label: {
+                    Label("Explore Signals", systemImage: "scope")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(PulsePalette.accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            case .expanded:
+                if let primary = events.first {
+                    PulseFeaturedEventCard(event: primary, compact: false)
+                        .onTapGesture {
+                            onSelect(primary)
+                        }
+                } else {
+                    Text("No highlights for this region and filter set.")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.72))
+                        .pulseGlassCard()
+                }
 
-            if events.count > 1 {
-                VStack(spacing: PulseSpacing.small) {
-                    ForEach(Array(events.dropFirst().prefix(maxSecondaryEvents))) { event in
-                        PulseSecondaryHighlightCard(event: event)
-                            .onTapGesture {
-                                onSelect(event)
-                            }
+                if events.count > 1 {
+                    VStack(spacing: PulseSpacing.small) {
+                        ForEach(Array(events.dropFirst().prefix(maxSecondaryEvents))) { event in
+                            PulseSecondaryHighlightCard(event: event)
+                                .onTapGesture {
+                                    onSelect(event)
+                                }
+                        }
                     }
                 }
-            }
 
-            Button {
-                onExplore()
-            } label: {
-                Label("Explore Signals", systemImage: "scope")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
+                Button {
+                    onExplore()
+                } label: {
+                    Label("Explore Signals", systemImage: "scope")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(PulsePalette.accent.opacity(0.26), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(PulsePalette.accent.opacity(0.26), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .padding(PulseSpacing.medium)
+        .padding(displayMode == .collapsed ? PulseSpacing.small : PulseSpacing.medium)
         .background {
-            RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                }
+            if displayMode == .expanded {
+                RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                    }
+            }
         }
     }
 }

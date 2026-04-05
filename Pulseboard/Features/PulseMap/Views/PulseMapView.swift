@@ -1,14 +1,14 @@
 import MapKit
 import SwiftUI
 
-private enum PhoneHighlightsDrawerState: Int, CaseIterable {
-    case collapsed
+private enum HighlightsOverlayState: Int, CaseIterable {
+    case hidden
     case peek
     case expanded
 
-    func nextExpandedState() -> PhoneHighlightsDrawerState {
+    func nextExpandedState() -> HighlightsOverlayState {
         switch self {
-        case .collapsed:
+        case .hidden:
             .peek
         case .peek:
             .expanded
@@ -17,12 +17,12 @@ private enum PhoneHighlightsDrawerState: Int, CaseIterable {
         }
     }
 
-    func nextCollapsedState() -> PhoneHighlightsDrawerState {
+    func nextCollapsedState() -> HighlightsOverlayState {
         switch self {
-        case .collapsed:
-            .collapsed
+        case .hidden:
+            .hidden
         case .peek:
-            .collapsed
+            .hidden
         case .expanded:
             .peek
         }
@@ -35,7 +35,7 @@ struct PulseMapView: View {
     @State private var selectedMapItem: PulseMapItem?
     @State private var isFilterTrayExpanded = false
     @State private var isExplorePresented = false
-    @State private var phoneDrawerState: PhoneHighlightsDrawerState = .peek
+    @State private var overlayState: HighlightsOverlayState = .hidden
     @GestureState private var phoneDrawerDragTranslation: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -130,64 +130,69 @@ struct PulseMapView: View {
         }
         .padding(.horizontal, PulseSpacing.large)
         .padding(.top, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .animation(.easeInOut(duration: 0.22), value: isFilterTrayExpanded)
     }
 
     private var topBar: some View {
         HStack(spacing: PulseSpacing.small) {
-            Menu {
-                ForEach(PulseRegion.allCases) { region in
-                    Button {
-                        viewModel.selectedRegion = region
-                    } label: {
-                        Label(
-                            region.title,
-                            systemImage: viewModel.selectedRegion == region ? "checkmark.circle.fill" : "globe.europe.africa.fill"
-                        )
+            regionMenuControl
+            filterToggleControl
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var regionMenuControl: some View {
+        Menu {
+            ForEach(PulseRegion.allCases) { region in
+                Button {
+                    viewModel.selectedRegion = region
+                } label: {
+                    Label(
+                        region.title,
+                        systemImage: viewModel.selectedRegion == region ? "checkmark.circle.fill" : "globe.europe.africa.fill"
+                    )
+                }
+            }
+        } label: {
+            HStack(spacing: PulseSpacing.tiny) {
+                Image(systemName: "location.circle.fill")
+                Text(viewModel.selectedRegion.title)
+                    .lineLimit(1)
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, PulseSpacing.medium)
+            .padding(.vertical, 9)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .stroke(.white.opacity(0.17), lineWidth: 1)
                     }
-                }
-            } label: {
-                HStack(spacing: PulseSpacing.tiny) {
-                    Image(systemName: "location.circle.fill")
-                    Text(viewModel.selectedRegion.title)
-                        .lineLimit(1)
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, PulseSpacing.medium)
-                .padding(.vertical, PulseSpacing.small)
+            }
+        }
+    }
+
+    private var filterToggleControl: some View {
+        Button {
+            isFilterTrayExpanded.toggle()
+        } label: {
+            Image(systemName: isFilterTrayExpanded ? "slider.horizontal.3.circle.fill" : "slider.horizontal.3")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(isFilterTrayExpanded ? PulsePalette.accent : .white)
+                .padding(9)
                 .background {
-                    Capsule(style: .continuous)
-                        .fill(.white.opacity(0.12))
+                    Circle()
+                        .fill(.ultraThinMaterial)
                         .overlay {
-                            Capsule(style: .continuous)
-                                .stroke(.white.opacity(0.25), lineWidth: 1)
+                            Circle().stroke(.white.opacity(0.17), lineWidth: 1)
                         }
                 }
-            }
-
-            Spacer()
-
-            Button {
-                isFilterTrayExpanded.toggle()
-            } label: {
-                Image(systemName: isFilterTrayExpanded ? "slider.horizontal.3.circle.fill" : "slider.horizontal.3")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(isFilterTrayExpanded ? PulsePalette.accent : .white)
-                    .padding(10)
-                    .background {
-                        Circle()
-                            .fill(.white.opacity(0.12))
-                            .overlay {
-                                Circle().stroke(.white.opacity(0.22), lineWidth: 1)
-                            }
-                    }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isFilterTrayExpanded ? "Hide filters" : "Show filters")
         }
-        .pulseGlassCard(prominent: true)
+        .buttonStyle(.plain)
+        .accessibilityLabel(isFilterTrayExpanded ? "Hide filters" : "Show filters")
     }
 
     private var filterTray: some View {
@@ -223,7 +228,16 @@ struct PulseMapView: View {
             categoryChips
             summaryCards
         }
-        .pulseGlassCard()
+        .padding(PulseSpacing.medium)
+        .frame(maxWidth: 560, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
+                        .stroke(.white.opacity(0.17), lineWidth: 1)
+                }
+        }
     }
 
     private var categoryChips: some View {
@@ -267,26 +281,51 @@ struct PulseMapView: View {
     }
 
     private func iPhoneBottomPanel(in geometry: GeometryProxy) -> some View {
-        let safeBottomInset = max(PulseSpacing.small, geometry.safeAreaInsets.bottom)
-        let collapsedHeight = phoneDrawerHeight(for: .collapsed, in: geometry.size.height, safeBottomInset: safeBottomInset)
-        let targetHeight = phoneDrawerHeight(for: phoneDrawerState, in: geometry.size.height, safeBottomInset: safeBottomInset)
-        let dragAdjustment = max(0, phoneDrawerDragTranslation)
-        let effectiveHeight = max(collapsedHeight, targetHeight - dragAdjustment)
+        guard overlayState != .hidden else {
+            return AnyView(
+                VStack {
+                    Spacer()
+                    minimizedHighlightsDockButton
+                        .padding(.bottom, max(PulseSpacing.large, geometry.safeAreaInsets.bottom))
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, PulseSpacing.large)
+                .ignoresSafeArea(edges: .bottom)
+            )
+        }
 
-        return VStack {
+        let safeBottomInset = max(PulseSpacing.small, geometry.safeAreaInsets.bottom)
+        let minimumHeight = phoneDrawerHeight(for: .peek, in: geometry.size.height, safeBottomInset: safeBottomInset)
+        let targetHeight = phoneDrawerHeight(for: overlayState, in: geometry.size.height, safeBottomInset: safeBottomInset)
+        let dragAdjustment = max(0, phoneDrawerDragTranslation)
+        let effectiveHeight = max(minimumHeight, targetHeight - dragAdjustment)
+
+        return AnyView(VStack {
             Spacer()
 
             VStack(alignment: .leading, spacing: PulseSpacing.small) {
-                Capsule(style: .continuous)
-                    .fill(.white.opacity(0.34))
-                    .frame(width: 44, height: 5)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, PulseSpacing.tiny)
+                HStack {
+                    Capsule(style: .continuous)
+                        .fill(.white.opacity(0.34))
+                        .frame(width: 44, height: 5)
+                        .frame(maxWidth: .infinity)
+
+                    Button {
+                        setOverlayState(.hidden)
+                    } label: {
+                        Image(systemName: "chevron.down.circle.fill")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.86))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Minimize highlights")
+                }
+                .padding(.top, PulseSpacing.tiny)
 
                 PulseHighlightsPanel(
                     events: viewModel.featuredEvents,
                     lastUpdated: viewModel.lastUpdated,
-                    maxSecondaryEvents: phoneDrawerState == .expanded ? 2 : 1,
+                    maxSecondaryEvents: overlayState == .expanded ? 2 : 1,
                     displayMode: panelDisplayMode,
                     onSelect: presentEvent,
                     onExplore: { isExplorePresented = true }
@@ -309,35 +348,56 @@ struct PulseMapView: View {
             .contentShape(RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous))
             .gesture(phoneDrawerGesture)
             .onTapGesture {
-                guard phoneDrawerState == .collapsed else {
+                guard overlayState == .peek else {
                     return
                 }
-                setPhoneDrawerState(.peek)
+                setOverlayState(.expanded)
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Pulse Highlights Drawer")
-            .accessibilityHint("Drag up to expand, drag down to collapse")
-            .animation(.spring(response: 0.3, dampingFraction: 0.86), value: phoneDrawerState)
+            .accessibilityHint("Drag up to expand, drag down to minimize")
+            .animation(.spring(response: 0.3, dampingFraction: 0.86), value: overlayState)
         }
-        .ignoresSafeArea(edges: .bottom)
+        .ignoresSafeArea(edges: .bottom))
     }
 
     private var iPadSidePanel: some View {
         HStack {
             Spacer()
 
-            PulseHighlightsPanel(
-                events: viewModel.featuredEvents,
-                lastUpdated: viewModel.lastUpdated,
-                maxSecondaryEvents: 4,
-                displayMode: .expanded,
-                onSelect: presentEvent,
-                onExplore: { isExplorePresented = true }
-            )
-            .frame(width: 360)
-            .padding(.top, 132)
-            .padding(.trailing, PulseSpacing.large)
-            .padding(.bottom, PulseSpacing.large)
+            if overlayState == .hidden {
+                minimizedHighlightsDockButton
+                    .padding(.top, 132)
+                    .padding(.trailing, PulseSpacing.large)
+            } else {
+                VStack(alignment: .trailing, spacing: PulseSpacing.small) {
+                    Button {
+                        setOverlayState(.hidden)
+                    } label: {
+                        Label("Minimize", systemImage: "sidebar.trailing")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, PulseSpacing.small)
+                            .padding(.vertical, PulseSpacing.tiny)
+                            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Minimize highlights panel")
+
+                    PulseHighlightsPanel(
+                        events: viewModel.featuredEvents,
+                        lastUpdated: viewModel.lastUpdated,
+                        maxSecondaryEvents: overlayState == .expanded ? 4 : 2,
+                        displayMode: panelDisplayMode,
+                        onSelect: presentEvent,
+                        onExplore: { isExplorePresented = true }
+                    )
+                    .frame(width: overlayState == .expanded ? 360 : 332)
+                }
+                .padding(.top, 132)
+                .padding(.trailing, PulseSpacing.large)
+                .padding(.bottom, PulseSpacing.large)
+            }
         }
     }
 
@@ -373,8 +433,8 @@ struct PulseMapView: View {
     }
 
     private var panelDisplayMode: PulseHighlightsPanel.DisplayMode {
-        switch phoneDrawerState {
-        case .collapsed:
+        switch overlayState {
+        case .hidden:
             .collapsed
         case .peek:
             .peek
@@ -391,16 +451,16 @@ struct PulseMapView: View {
             .onEnded { value in
                 let dragDistance = value.translation.height
                 if dragDistance <= -65 {
-                    setPhoneDrawerState(phoneDrawerState.nextExpandedState())
+                    setOverlayState(overlayState.nextExpandedState())
                 } else if dragDistance >= 65 {
-                    setPhoneDrawerState(phoneDrawerState.nextCollapsedState())
+                    setOverlayState(overlayState.nextCollapsedState())
                 }
             }
     }
 
-    private func setPhoneDrawerState(_ state: PhoneHighlightsDrawerState) {
+    private func setOverlayState(_ state: HighlightsOverlayState) {
         let update = {
-            phoneDrawerState = state
+            overlayState = state
         }
 
         if reduceMotion {
@@ -410,15 +470,34 @@ struct PulseMapView: View {
         }
     }
 
-    private func phoneDrawerHeight(for state: PhoneHighlightsDrawerState, in screenHeight: CGFloat, safeBottomInset: CGFloat) -> CGFloat {
+    private func phoneDrawerHeight(for state: HighlightsOverlayState, in screenHeight: CGFloat, safeBottomInset: CGFloat) -> CGFloat {
         switch state {
-        case .collapsed:
-            return 76 + safeBottomInset
+        case .hidden:
+            return 0
         case .peek:
             return min(232, max(196, screenHeight * 0.28)) + safeBottomInset
         case .expanded:
             return min(470, max(320, screenHeight * 0.56)) + safeBottomInset
         }
+    }
+
+    private var minimizedHighlightsDockButton: some View {
+        Button {
+            setOverlayState(.peek)
+        } label: {
+            Label("Pulse Highlights", systemImage: "waveform.path.ecg.rectangle")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, PulseSpacing.medium)
+                .padding(.vertical, PulseSpacing.small)
+                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Show pulse highlights")
     }
 
     private func updateCamera(for region: PulseRegion) {

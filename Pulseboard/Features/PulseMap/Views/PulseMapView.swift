@@ -613,8 +613,14 @@ private struct PulseMarkerView: View {
 }
 
 private struct PulseFeaturedEventCard: View {
+    enum SurfaceStyle {
+        case glass
+        case signal
+    }
+
     let event: PulseEvent
     var compact = true
+    var surfaceStyle: SurfaceStyle = .glass
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -649,7 +655,8 @@ private struct PulseFeaturedEventCard: View {
             .foregroundStyle(.white.opacity(0.68))
         }
         .frame(width: compact ? 228 : nil, alignment: .leading)
-        .pulseGlassCard()
+        .padding(surfaceStyle == .signal ? PulseSpacing.small : 0)
+        .modifier(PulseOptionalGlassCard(enabled: surfaceStyle == .glass))
     }
 }
 
@@ -726,23 +733,33 @@ private struct PulseHighlightsPanel: View {
                 .background(PulsePalette.accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             case .expanded:
                 if let primary = events.first {
-                    PulseFeaturedEventCard(event: primary, compact: false)
+                    PulseFeaturedEventCard(event: primary, compact: false, surfaceStyle: .signal)
                         .onTapGesture {
                             onSelect(primary)
+                        }
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(.white.opacity(0.12))
+                                .frame(height: 1)
                         }
                 } else {
                     Text("No highlights for this region and filter set.")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.72))
-                        .pulseGlassCard()
+                        .padding(.vertical, PulseSpacing.small)
                 }
 
                 if events.count > 1 {
-                    VStack(spacing: PulseSpacing.small) {
+                    VStack(spacing: PulseSpacing.tiny) {
                         ForEach(Array(events.dropFirst().prefix(maxSecondaryEvents))) { event in
-                            PulseSecondaryHighlightCard(event: event)
+                            PulseSecondaryHighlightCard(event: event, surfaceStyle: .signal)
                                 .onTapGesture {
                                     onSelect(event)
+                                }
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .fill(.white.opacity(0.09))
+                                        .frame(height: 1)
                                 }
                         }
                     }
@@ -754,21 +771,25 @@ private struct PulseHighlightsPanel: View {
                     Label("Explore Signals", systemImage: "scope")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white)
-                .background(PulsePalette.accent.opacity(0.26), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(PulsePalette.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                }
             }
         }
         .padding(displayMode == .collapsed ? PulseSpacing.small : PulseSpacing.medium)
         .background {
             if displayMode == .expanded {
                 RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(.black.opacity(0.16))
                     .overlay {
                         RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(.white.opacity(0.14), lineWidth: 1)
                     }
             }
         }
@@ -776,7 +797,13 @@ private struct PulseHighlightsPanel: View {
 }
 
 private struct PulseSecondaryHighlightCard: View {
+    enum SurfaceStyle {
+        case glass
+        case signal
+    }
+
     let event: PulseEvent
+    var surfaceStyle: SurfaceStyle = .glass
 
     var body: some View {
         HStack(alignment: .top, spacing: PulseSpacing.small) {
@@ -802,7 +829,21 @@ private struct PulseSecondaryHighlightCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .pulseGlassCard()
+        .padding(surfaceStyle == .signal ? PulseSpacing.small : 0)
+        .modifier(PulseOptionalGlassCard(enabled: surfaceStyle == .glass))
+    }
+}
+
+private struct PulseOptionalGlassCard: ViewModifier {
+    let enabled: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if enabled {
+            content.pulseGlassCard()
+        } else {
+            content
+        }
     }
 }
 

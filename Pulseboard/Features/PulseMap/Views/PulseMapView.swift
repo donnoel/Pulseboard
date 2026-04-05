@@ -34,13 +34,49 @@ private enum MapZoomLevel: Equatable {
     case regional
     case local
 
-    init(latitudeDelta: CLLocationDegrees) {
-        if latitudeDelta > 70 {
-            self = .global
-        } else if latitudeDelta > 20 {
-            self = .regional
-        } else {
-            self = .local
+    static func resolved(latitudeDelta: CLLocationDegrees, current: MapZoomLevel) -> MapZoomLevel {
+        switch current {
+        case .global:
+            return latitudeDelta <= 64 ? .regional : .global
+        case .regional:
+            if latitudeDelta >= 78 {
+                return .global
+            }
+            if latitudeDelta <= 16 {
+                return .local
+            }
+            return .regional
+        case .local:
+            return latitudeDelta >= 24 ? .regional : .local
+        }
+    }
+}
+
+private enum SignalImportance {
+    case primary
+    case secondary
+    case background
+}
+
+private extension PulseMapItem {
+    var signalImportance: SignalImportance {
+        if isCluster {
+            if count >= 6 || primaryEvent.severity.rank >= PulseSeverity.high.rank {
+                return .primary
+            }
+            if count >= 3 || primaryEvent.severity.rank >= PulseSeverity.moderate.rank {
+                return .secondary
+            }
+            return .background
+        }
+
+        switch primaryEvent.severity {
+        case .severe, .high:
+            return .primary
+        case .moderate:
+            return .secondary
+        case .low, .unknown:
+            return .background
         }
     }
 }
@@ -125,11 +161,21 @@ struct PulseMapView: View {
             MapScaleView()
         }
         .onMapCameraChange(frequency: .continuous) { context in
-            let nextLevel = MapZoomLevel(latitudeDelta: context.region.span.latitudeDelta)
+            let nextLevel = MapZoomLevel.resolved(
+                latitudeDelta: context.region.span.latitudeDelta,
+                current: zoomLevel
+            )
             if nextLevel != zoomLevel {
-                zoomLevel = nextLevel
+                if reduceMotion {
+                    zoomLevel = nextLevel
+                } else {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        zoomLevel = nextLevel
+                    }
+                }
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: zoomLevel)
         .ignoresSafeArea()
     }
 
@@ -547,14 +593,27 @@ struct PulseMapView: View {
     private var visibleMapItems: [PulseMapItem] {
         viewModel.mapItems.filter { item in
             if item.isCluster {
-                return true
+                switch zoomLevel {
+                case .global:
+                    return item.signalImportance != .background
+                case .regional:
+                    return item.signalImportance != .background || item.count >= 2
+                case .local:
+                    return true
+                }
             }
 
             switch zoomLevel {
             case .global:
                 return item.primaryEvent.severity.rank >= PulseSeverity.high.rank
             case .regional:
-                return item.primaryEvent.severity.rank >= PulseSeverity.moderate.rank
+                if item.primaryEvent.severity.rank >= PulseSeverity.high.rank {
+                    return true
+                }
+                guard item.primaryEvent.severity == .moderate else {
+                    return false
+                }
+                return Date.now.timeIntervalSince(item.primaryEvent.timestamp) <= 18 * 60 * 60
             case .local:
                 return true
             }
@@ -562,10 +621,18 @@ struct PulseMapView: View {
     }
 
     private func annotationTitle(for item: PulseMapItem) -> String {
-        guard zoomLevel == .local, !item.isCluster else {
+        guard !item.isCluster else {
             return ""
         }
-        return item.primaryEvent.title
+
+        switch zoomLevel {
+        case .global:
+            return ""
+        case .regional:
+            return item.signalImportance == .primary ? item.primaryEvent.title : ""
+        case .local:
+            return item.primaryEvent.title
+        }
     }
 
     private func markerZIndex(for item: PulseMapItem) -> Double {
@@ -607,12 +674,6 @@ private struct PulseSummaryCard: View {
 }
 
 private struct PulseMarkerView: View {
-    private enum MarkerImportance {
-        case primary
-        case secondary
-        case background
-    }
-
     let item: PulseMapItem
     let zoomLevel: MapZoomLevel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -620,7 +681,7 @@ private struct PulseMarkerView: View {
 
     var body: some View {
         ZStack {
-            if !reduceMotion, markerImportance == .primary, zoomLevel != .global || item.isCluster {
+            if shouldAnimatePulse {
                 Circle()
                     .stroke(markerColor.opacity(markerOpacity * 0.55), lineWidth: 2)
                     .frame(width: markerSize * 1.7, height: markerSize * 1.7)
@@ -636,17 +697,23 @@ private struct PulseMarkerView: View {
                     Circle()
                         .stroke(
                             PulseIconography.tint(for: item.primaryEvent.source).opacity(markerStrokeOpacity),
-                            lineWidth: markerImportance == .primary ? 1.4 : 1.0
+                            lineWidth: item.signalImportance == .primary ? 1.4 : 1.0
                         )
                 }
 
+            if item.isCluster, item.signalImportance == .primary {
+                Circle()
+                    .fill(.white.opacity(0.28))
+                    .frame(width: max(4, markerSize * 0.22), height: max(4, markerSize * 0.22))
+            }
+
             if item.isCluster {
                 Text("\(item.count)")
-                    .font(markerImportance == .background ? .caption2.weight(.medium) : .caption2.weight(.bold))
+                    .font(item.signalImportance == .background ? .caption2.weight(.medium) : .caption2.weight(.bold))
                     .foregroundStyle(.white)
             } else {
                 Image(systemName: PulseIconography.symbol(for: item.primaryEvent.category))
-                    .font(markerImportance == .primary ? .caption2.weight(.bold) : .caption2.weight(.semibold))
+                    .font(item.signalImportance == .primary ? .caption2.weight(.bold) : .caption2.weight(.semibold))
                     .foregroundStyle(.white)
             }
         }
@@ -667,7 +734,7 @@ private struct PulseMarkerView: View {
         }
 
         let hierarchyScale: CGFloat
-        switch markerImportance {
+        switch item.signalImportance {
         case .primary:
             hierarchyScale = 1.0
         case .secondary:
@@ -695,33 +762,12 @@ private struct PulseMarkerView: View {
         return max(10, baseSize * hierarchyScale * zoomScale)
     }
 
-    private var markerImportance: MarkerImportance {
-        if item.isCluster {
-            if item.count >= 6 || item.primaryEvent.severity.rank >= PulseSeverity.high.rank {
-                return .primary
-            }
-            if item.count >= 3 || item.primaryEvent.severity.rank >= PulseSeverity.moderate.rank {
-                return .secondary
-            }
-            return .background
-        }
-
-        switch item.primaryEvent.severity {
-        case .severe, .high:
-            return .primary
-        case .moderate:
-            return .secondary
-        case .low, .unknown:
-            return .background
-        }
-    }
-
     private var markerColor: Color {
         PulsePalette.color(for: item.primaryEvent.severity)
     }
 
     private var markerOpacity: Double {
-        switch (markerImportance, zoomLevel) {
+        switch (item.signalImportance, zoomLevel) {
         case (.primary, _):
             return 0.94
         case (.secondary, .global):
@@ -738,7 +784,7 @@ private struct PulseMarkerView: View {
     }
 
     private var markerStrokeOpacity: Double {
-        switch markerImportance {
+        switch item.signalImportance {
         case .primary:
             return 0.88
         case .secondary:
@@ -746,6 +792,13 @@ private struct PulseMarkerView: View {
         case .background:
             return 0.56
         }
+    }
+
+    private var shouldAnimatePulse: Bool {
+        guard !reduceMotion, item.signalImportance == .primary else {
+            return false
+        }
+        return zoomLevel != .global || item.isCluster
     }
 }
 

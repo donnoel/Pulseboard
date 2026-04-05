@@ -12,7 +12,7 @@ Phase 2 is now in progress:
 1) Feature-oriented SwiftUI + MVVM structure is in place.
 2) Shared domain/event models and region filtering are established.
 3) Real USGS + EONET integrations feed home experience with no mock runtime data.
-4) Pulse Map home is map-first with a compact top bar, expandable filter tray, and dockable/minimizable Pulse Highlights surfaces on iPhone and iPad, including a lighter expanded signal-layer presentation plus calmer marker hierarchy and density-aware clustering.
+4) Pulse Map home is map-first with a compact top bar, expandable filter tray, and dockable/minimizable Pulse Highlights surfaces on iPhone and iPad, including a lighter expanded signal-layer presentation plus calmer marker hierarchy, zoom-aware visibility, density-aware clustering, and smoothed zoom-band transitions.
 5) Event Detail is extracted into a dedicated feature with its own view model.
 6) Explore Signals sheet provides a separate browsing surface to reduce home clutter.
 

@@ -143,12 +143,12 @@ final class PulseMapViewModel: ObservableObject {
     }
 
     private static func clusteredMapItems(from events: [PulseEvent], region: PulseRegion) -> [PulseMapItem] {
-        let gridSize = clusterGridSize(for: region)
+        let gridSize = clusterGridSize(for: region, eventCount: events.count)
         var buckets: [String: [PulseEvent]] = [:]
 
         for event in events {
-            let latIndex = Int((event.coordinate.latitude / gridSize).rounded())
-            let lonIndex = Int((event.coordinate.longitude / gridSize).rounded())
+            let latIndex = Int(floor(event.coordinate.latitude / gridSize))
+            let lonIndex = Int(floor(event.coordinate.longitude / gridSize))
             let key = "\(latIndex):\(lonIndex)"
             buckets[key, default: []].append(event)
         }
@@ -183,14 +183,33 @@ final class PulseMapViewModel: ObservableObject {
         }
     }
 
-    private static func clusterGridSize(for region: PulseRegion) -> Double {
+    private static func clusterGridSize(for region: PulseRegion, eventCount: Int) -> Double {
+        let baseSize: Double
         switch region {
         case .world:
-            3.0
-        case .asia, .northAmerica:
-            2.0
+            baseSize = 3.6
+        case .northAmerica:
+            baseSize = 2.6
+        case .asia:
+            baseSize = 2.3
         default:
-            1.3
+            baseSize = 1.5
         }
+
+        let densityMultiplier: Double
+        switch eventCount {
+        case 700...:
+            densityMultiplier = 1.55
+        case 450...:
+            densityMultiplier = 1.4
+        case 250...:
+            densityMultiplier = 1.25
+        case 120...:
+            densityMultiplier = 1.1
+        default:
+            densityMultiplier = 1.0
+        }
+
+        return baseSize * densityMultiplier
     }
 }

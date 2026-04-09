@@ -55,15 +55,16 @@ struct PulseGlassCardStyle: ViewModifier {
     let prominent: Bool
 
     func body(content: Content) -> some View {
+        let style = prominent
+            ? Glass.regular.tint(.white.opacity(0.16))
+            : Glass.regular
+
         content
             .padding(PulseSpacing.medium)
-            .background {
+            .glassEffect(style, in: .rect(cornerRadius: PulseCornerRadius.card))
+            .overlay {
                 RoundedRectangle(cornerRadius: PulseCornerRadius.card, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: PulseCornerRadius.card, style: .continuous)
-                            .stroke(.white.opacity(prominent ? 0.28 : 0.18), lineWidth: 1)
-                    }
+                    .stroke(.white.opacity(prominent ? 0.24 : 0.16), lineWidth: 1)
             }
             .shadow(color: .black.opacity(prominent ? 0.22 : 0.14), radius: prominent ? 18 : 10, y: 8)
     }
@@ -80,21 +81,18 @@ struct PulseChipButtonStyle: ButtonStyle {
     let tint: Color
 
     func makeBody(configuration: Configuration) -> some View {
-        let fillStyle = selected
-            ? AnyShapeStyle(tint.opacity(0.24))
-            : AnyShapeStyle(.ultraThinMaterial)
+        let style = selected
+            ? Glass.regular.tint(tint.opacity(0.28)).interactive()
+            : Glass.regular.interactive()
 
         configuration.label
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, PulseSpacing.medium)
             .padding(.vertical, PulseSpacing.small)
-            .background {
+            .glassEffect(style, in: .capsule)
+            .overlay {
                 Capsule(style: .continuous)
-                    .fill(fillStyle)
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .stroke(selected ? tint.opacity(0.9) : .white.opacity(0.20), lineWidth: 1)
-                    }
+                    .stroke(selected ? tint.opacity(0.9) : .white.opacity(0.20), lineWidth: 1)
             }
             .foregroundStyle(selected ? .white : .white.opacity(0.9))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)

@@ -11,8 +11,9 @@
 Phase 2 is now in progress:
 1) Feature-oriented SwiftUI + MVVM structure is in place.
 2) Shared domain/event models and region filtering are established.
-3) Real USGS + EONET integrations feed home experience with no mock runtime data.
+3) Real USGS + EONET + GDACS integrations feed home experience with no mock runtime data.
 4) Pulse Map home is map-first with a compact top bar, expandable filter tray, and dockable/minimizable Pulse Highlights surfaces on iPhone and iPad, including a lighter expanded signal-layer presentation plus calmer marker hierarchy, zoom-aware visibility, density-aware clustering, and smoothed zoom-band transitions.
+   - Core control/card surfaces now use native iOS 26 Liquid Glass treatments (`glassEffect`, glass button styles, grouped glass containers) while preserving existing interaction flows.
 5) Event Detail is extracted into a dedicated feature with its own view model.
 6) Explore Signals sheet provides a separate browsing surface to reduce home clutter.
 
@@ -31,6 +32,7 @@ Current reliability and UX goals:
   - `PulseEventAggregatorService` actor for multi-source merge + partial-failure capture.
   - `USGSEarthquakeService` actor for feed fetch, normalization, and in-memory TTL caching.
   - `EONETService` actor for EONET fetch, normalization, and in-memory TTL caching.
+  - `GDACSService` actor for GDACS feed fetch, normalization, and in-memory TTL caching.
   - Shared protocol: `PulseEventProviding`.
 - Domain:
   - `PulseEvent`, `PulseCategory`, `PulseSeverity`, `PulseSource`, `PulseRegion`, `PulseTimeWindow`.
@@ -67,7 +69,7 @@ Current reliability and UX goals:
   - `xcodebuild -scheme Pulseboard -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:PulseboardTests test`
 
 ## Near-term priorities
-1) Add GDACS + NWS sources with partial-failure aggregation behavior.
+1) Add NWS sources with partial-failure aggregation behavior.
 2) Expand home summaries/filters for mixed-source events and alert categories.
 3) Continue iPad-first polish, accessibility, and performance passes.
 4) Add focused tests for remaining source normalizers as they land.

@@ -190,12 +190,14 @@ struct PulseMapView: View {
     }
 
     private var topControls: some View {
-        VStack(alignment: .leading, spacing: PulseSpacing.small) {
-            topBar
+        GlassEffectContainer(spacing: PulseSpacing.medium) {
+            VStack(alignment: .leading, spacing: PulseSpacing.small) {
+                topBar
 
-            if isFilterTrayExpanded {
-                filterTray
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                if isFilterTrayExpanded {
+                    filterTray
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
         }
         .padding(.horizontal, PulseSpacing.large)
@@ -213,7 +215,9 @@ struct PulseMapView: View {
     }
 
     private var regionMenuControl: some View {
-        Menu {
+        let style = Glass.regular.interactive()
+
+        return Menu {
             ForEach(PulseRegion.allCases) { region in
                 Button {
                     viewModel.selectedRegion = region
@@ -234,31 +238,29 @@ struct PulseMapView: View {
             .foregroundStyle(.white)
             .padding(.horizontal, PulseSpacing.medium)
             .padding(.vertical, 9)
-            .background {
+            .glassEffect(style, in: .capsule)
+            .overlay {
                 Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .stroke(.white.opacity(0.17), lineWidth: 1)
-                    }
+                    .stroke(.white.opacity(0.17), lineWidth: 1)
             }
         }
     }
 
     private var filterToggleControl: some View {
-        Button {
+        let style = isFilterTrayExpanded
+            ? Glass.regular.tint(PulsePalette.accent.opacity(0.2)).interactive()
+            : Glass.regular.interactive()
+
+        return Button {
             isFilterTrayExpanded.toggle()
         } label: {
             Image(systemName: isFilterTrayExpanded ? "slider.horizontal.3.circle.fill" : "slider.horizontal.3")
                 .font(.body.weight(.semibold))
                 .foregroundStyle(isFilterTrayExpanded ? PulsePalette.accent : .white)
                 .padding(9)
-                .background {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Circle().stroke(.white.opacity(0.17), lineWidth: 1)
-                        }
+                .glassEffect(style, in: .circle)
+                .overlay {
+                    Circle().stroke(.white.opacity(0.17), lineWidth: 1)
                 }
         }
         .buttonStyle(.plain)
@@ -300,13 +302,10 @@ struct PulseMapView: View {
         }
         .padding(PulseSpacing.medium)
         .frame(maxWidth: 560, alignment: .leading)
-        .background {
+        .glassEffect(.regular, in: .rect(cornerRadius: PulseCornerRadius.panel))
+        .overlay {
             RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                        .stroke(.white.opacity(0.17), lineWidth: 1)
-                }
+                .stroke(.white.opacity(0.17), lineWidth: 1)
         }
     }
 
@@ -406,13 +405,10 @@ struct PulseMapView: View {
             .padding(.bottom, safeBottomInset)
             .frame(maxWidth: .infinity, alignment: .top)
             .frame(height: effectiveHeight, alignment: .top)
-            .background {
+            .glassEffect(.regular, in: .rect(cornerRadius: PulseCornerRadius.panel))
+            .overlay {
                 RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    }
+                    .stroke(.white.opacity(0.2), lineWidth: 1)
             }
             .padding(.horizontal, PulseSpacing.small)
             .contentShape(RoundedRectangle(cornerRadius: PulseCornerRadius.panel, style: .continuous))
@@ -440,29 +436,30 @@ struct PulseMapView: View {
                     .padding(.top, 132)
                     .padding(.trailing, PulseSpacing.large)
             } else {
-                VStack(alignment: .trailing, spacing: PulseSpacing.small) {
-                    Button {
-                        setOverlayState(.hidden)
-                    } label: {
-                        Label("Minimize", systemImage: "sidebar.trailing")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, PulseSpacing.small)
-                            .padding(.vertical, PulseSpacing.tiny)
-                            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Minimize highlights panel")
+                GlassEffectContainer(spacing: PulseSpacing.medium) {
+                    VStack(alignment: .trailing, spacing: PulseSpacing.small) {
+                        Button {
+                            setOverlayState(.hidden)
+                        } label: {
+                            Label("Minimize", systemImage: "sidebar.trailing")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, PulseSpacing.small)
+                                .padding(.vertical, PulseSpacing.tiny)
+                        }
+                        .buttonStyle(.glass)
+                        .accessibilityLabel("Minimize highlights panel")
 
-                    PulseHighlightsPanel(
-                        events: viewModel.featuredEvents,
-                        lastUpdated: viewModel.lastUpdated,
-                        maxSecondaryEvents: overlayState == .expanded ? 4 : 2,
-                        displayMode: panelDisplayMode,
-                        onSelect: presentEvent,
-                        onExplore: { isExplorePresented = true }
-                    )
-                    .frame(width: overlayState == .expanded ? 360 : 332)
+                        PulseHighlightsPanel(
+                            events: viewModel.featuredEvents,
+                            lastUpdated: viewModel.lastUpdated,
+                            maxSecondaryEvents: overlayState == .expanded ? 4 : 2,
+                            displayMode: panelDisplayMode,
+                            onSelect: presentEvent,
+                            onExplore: { isExplorePresented = true }
+                        )
+                        .frame(width: overlayState == .expanded ? 360 : 332)
+                    }
                 }
                 .padding(.top, 132)
                 .padding(.trailing, PulseSpacing.large)
@@ -560,13 +557,8 @@ struct PulseMapView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, PulseSpacing.medium)
                 .padding(.vertical, PulseSpacing.small)
-                .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .accessibilityLabel("Show pulse highlights")
     }
 
@@ -916,11 +908,8 @@ private struct PulseHighlightsPanel: View {
                     Label("Explore Signals", systemImage: "scope")
                         .font(.caption.weight(.semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white)
-                .background(PulsePalette.accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .buttonStyle(.glass)
             case .expanded:
                 if let primary = events.first {
                     PulseFeaturedEventCard(event: primary, compact: false, surfaceStyle: .signal)
@@ -961,15 +950,8 @@ private struct PulseHighlightsPanel: View {
                     Label("Explore Signals", systemImage: "scope")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white)
-                .background(PulsePalette.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.white.opacity(0.16), lineWidth: 1)
-                }
+                .buttonStyle(.glassProminent)
             }
         }
         .padding(displayMode == .collapsed ? PulseSpacing.small : PulseSpacing.medium)

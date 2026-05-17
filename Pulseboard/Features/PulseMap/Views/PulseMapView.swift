@@ -120,6 +120,7 @@ struct PulseMapView: View {
             .onChange(of: viewModel.selectedRegion) { _, newRegion in
                 updateCamera(for: newRegion)
             }
+            .accessibilityIdentifier("pulse.map.home")
         }
         .sheet(item: $selectedMapItem) { item in
             EventDetailView(viewModel: EventDetailViewModel(mapItem: item))

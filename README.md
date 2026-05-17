@@ -8,6 +8,7 @@ Current V1 foundation:
 - Unified event/domain models for multi-source expansion.
 - Region, category, and time-window filtering.
 - Layered map UI with chips, summary cards, clustered markers, and featured event panel.
+- Phase 2 is in progress, with NWS alerts planned as a near-term future source.
 
 ## Requirements
 - Xcode 17+ (Swift 6 toolchain)
@@ -43,7 +44,8 @@ Pulseboard/
 
 ## Roadmap
 - [x] Phase 1: architecture + design tokens + live USGS map foundation
-- [ ] Phase 2: Event detail + deeper filter behavior
-- [ ] Phase 3: EONET integration
-- [x] Phase 4: GDACS integration
-- [ ] Phase 5: NWS alerts + region polish
+- [ ] Phase 2: map-first live-source refinement, event detail, filters, and iPad polish
+- [x] USGS integration
+- [x] NASA EONET integration
+- [x] GDACS integration
+- [ ] NWS alerts + region polish

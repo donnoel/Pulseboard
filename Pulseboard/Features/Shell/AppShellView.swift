@@ -14,6 +14,7 @@ struct AppShellView: View {
                 }
         }
         .tint(PulsePalette.accent)
+        .accessibilityIdentifier("app.shell")
     }
 }
 

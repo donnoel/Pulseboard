@@ -1,5 +1,7 @@
+import AppIntents
 import XCTest
 
+@MainActor
 final class PulseboardUITests: XCTestCase {
     func testLaunchShowsPulseMapShell() throws {
         let app = XCUIApplication()

@@ -20,7 +20,7 @@ struct PulseEventAggregationResult: Sendable {
 }
 
 enum PulseRuntimeSources {
-    static let activeSources: [PulseSource] = [.usgs, .eonet, .gdacs]
+    static let activeSources: [PulseSource] = [.usgs, .eonet, .gdacs, .nws]
 }
 
 actor PulseEventAggregatorService {
@@ -31,7 +31,7 @@ actor PulseEventAggregatorService {
 
     private let providers: [any PulseEventProviding]
 
-    init(providers: [any PulseEventProviding] = [USGSEarthquakeService(), EONETService(), GDACSService()]) {
+    init(providers: [any PulseEventProviding] = [USGSEarthquakeService(), EONETService(), GDACSService(), NWSAlertsService()]) {
         self.providers = providers
     }
 

@@ -17,7 +17,7 @@ enum PulseSource: String, Codable, CaseIterable, Identifiable, Sendable {
         case .gdacs:
             "GDACS"
         case .nws:
-            "NOAA / NWS"
+            "NWS / National Weather Service"
         }
     }
 

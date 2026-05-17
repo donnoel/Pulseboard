@@ -4,11 +4,11 @@
 Pulseboard is a map-first iPhone + iPad SwiftUI app for exploring live natural events from direct public feeds.
 
 Current V1 foundation:
-- Real-time USGS, NASA EONET, and GDACS integrations (no mock runtime data).
+- Real-time USGS, NASA EONET, GDACS, and NWS integrations (no mock runtime data).
 - Unified event/domain models for multi-source expansion.
 - Region, category, and time-window filtering.
 - Layered map UI with chips, summary cards, clustered markers, and featured event panel.
-- Phase 2 is in progress, with NWS alerts planned as a near-term future source.
+- Phase 2 is in progress, with active NWS alerts now part of the live source foundation.
 
 ## Requirements
 - Xcode 17+ (Swift 6 toolchain)
@@ -48,4 +48,5 @@ Pulseboard/
 - [x] USGS integration
 - [x] NASA EONET integration
 - [x] GDACS integration
-- [ ] NWS alerts + region polish
+- [x] NWS alerts integration
+- [ ] Region polish

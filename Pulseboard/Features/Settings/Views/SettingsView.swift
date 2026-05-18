@@ -24,14 +24,25 @@ struct SettingsView: View {
                         Text("Pulseboard")
                             .font(.largeTitle.weight(.bold))
                             .foregroundStyle(.white)
-                        Text("Live natural-event awareness with direct public data feeds and no backend.")
+                        Text("A living world pulse across safety, learning, and economic signals.")
                             .font(.body)
                             .foregroundStyle(.white.opacity(0.84))
                     }
                     .pulseGlassCard(prominent: true)
 
                     VStack(alignment: .leading, spacing: PulseSpacing.small) {
-                        Text("Live Data Sources")
+                        Text("World Pulse Pillars")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+
+                        ForEach(PulsePillar.allCases) { pillar in
+                            pillarRow(pillar)
+                        }
+                    }
+                    .pulseGlassCard()
+
+                    VStack(alignment: .leading, spacing: PulseSpacing.small) {
+                        Text("Live Safety Sources")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(.white)
 
@@ -55,6 +66,31 @@ struct SettingsView: View {
                 .padding(PulseSpacing.large)
             }
         }
+    }
+
+    private func pillarRow(_ pillar: PulsePillar) -> some View {
+        HStack(spacing: PulseSpacing.small) {
+            Image(systemName: pillar.systemImage)
+                .font(.headline)
+                .foregroundStyle(pillar == .safety ? PulsePalette.accent : .white.opacity(0.7))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(pillar.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text(pillar.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            Spacer()
+
+            Text(pillar.statusLabel)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(pillar == .safety ? PulsePalette.success : .white.opacity(0.52))
+        }
+        .padding(.vertical, 3)
     }
 
     private func sourceRow(_ source: PulseSource, status: String, tint: Color) -> some View {

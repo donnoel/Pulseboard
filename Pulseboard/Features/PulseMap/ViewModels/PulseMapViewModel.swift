@@ -43,11 +43,15 @@ final class PulseMapViewModel: ObservableObject {
     private let eventAggregator: PulseEventAggregatorService
     private let logger = Logger(subsystem: "dn.pulseboard", category: "PulseMapViewModel")
     private var allEvents: [PulseEvent] = []
-    private var refreshTask: Task<PulseEventAggregationResult, Never>?
+    private var selectionRefreshTask: Task<Void, Never>?
     private var refreshRequestID: UInt64 = 0
 
     init(eventAggregator: PulseEventAggregatorService = PulseEventAggregatorService()) {
         self.eventAggregator = eventAggregator
+    }
+
+    deinit {
+        selectionRefreshTask?.cancel()
     }
 
     func loadIfNeeded() async {
@@ -64,29 +68,31 @@ final class PulseMapViewModel: ObservableObject {
         }
 
         selectedTimeWindow = timeWindow
-        Task {
-            await refresh()
+        selectionRefreshTask?.cancel()
+        selectionRefreshTask = Task { [weak self] in
+            await self?.refresh()
         }
     }
 
     func refresh() async {
-        refreshTask?.cancel()
         refreshRequestID &+= 1
         let requestID = refreshRequestID
         let targetTimeWindow = selectedTimeWindow
         isLoading = true
 
-        let task = Task { [eventAggregator] in
-            await eventAggregator.fetchEvents(in: targetTimeWindow)
-        }
-        refreshTask = task
-        let result = await task.value
+        let result = await eventAggregator.fetchEvents(in: targetTimeWindow)
 
         guard requestID == refreshRequestID else {
             return
         }
 
-        refreshTask = nil
+        selectionRefreshTask = nil
+
+        guard !Task.isCancelled else {
+            isLoading = false
+            return
+        }
+
         isLoading = false
 
         if result.hasFailures {

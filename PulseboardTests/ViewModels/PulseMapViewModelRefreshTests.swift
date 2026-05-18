@@ -124,6 +124,45 @@ final class PulseMapViewModelRefreshTests: XCTestCase {
         XCTAssertEqual(viewModel.metrics.recentCount, 1)
     }
 
+    func testSelectedRegionRemainsFilterSourceOfTruth() async {
+        let northAmericaEvent = makeEvent(
+            id: "north-america",
+            category: .earthquakes,
+            severity: .moderate,
+            source: .usgs,
+            timestamp: Date(),
+            coordinate: PulseCoordinate(latitude: 37.7749, longitude: -122.4194)
+        )
+        let europeEvent = makeEvent(
+            id: "europe",
+            category: .earthquakes,
+            severity: .moderate,
+            source: .usgs,
+            timestamp: Date(),
+            coordinate: PulseCoordinate(latitude: 48.8566, longitude: 2.3522)
+        )
+
+        let aggregator = PulseEventAggregatorService(
+            providers: [
+                TimeWindowStubProvider(
+                    source: .usgs,
+                    responses: [.hours24: .success([northAmericaEvent, europeEvent], delayMilliseconds: 0)]
+                )
+            ]
+        )
+        let viewModel = PulseMapViewModel(eventAggregator: aggregator)
+
+        await viewModel.refresh()
+        XCTAssertEqual(viewModel.selectedRegion, .world)
+        XCTAssertEqual(viewModel.filteredEvents.map(\.id).sorted(), ["usgs-europe", "usgs-north-america"])
+
+        viewModel.selectedRegion = .northAmerica
+
+        XCTAssertEqual(viewModel.selectedRegion, .northAmerica)
+        XCTAssertEqual(viewModel.filteredEvents.map(\.id), ["usgs-north-america"])
+        XCTAssertEqual(viewModel.metrics.totalCount, 1)
+    }
+
     private func waitUntilIdle(_ viewModel: PulseMapViewModel) async {
         await waitForCondition { !viewModel.isLoading }
         XCTAssertFalse(viewModel.isLoading, "Expected refresh to complete before timeout.")
@@ -143,7 +182,8 @@ final class PulseMapViewModelRefreshTests: XCTestCase {
         category: PulseCategory = .earthquakes,
         severity: PulseSeverity = .moderate,
         source: PulseSource = .usgs,
-        timestamp: Date
+        timestamp: Date,
+        coordinate: PulseCoordinate = PulseCoordinate(latitude: 37.7749, longitude: -122.4194)
     ) -> PulseEvent {
         PulseEvent(
             id: id,
@@ -153,7 +193,7 @@ final class PulseMapViewModelRefreshTests: XCTestCase {
             severity: severity,
             source: source,
             timestamp: timestamp,
-            coordinate: PulseCoordinate(latitude: 37.7749, longitude: -122.4194),
+            coordinate: coordinate,
             link: nil,
             metadata: [:]
         )

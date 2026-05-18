@@ -118,6 +118,8 @@ struct PulseMapView: View {
                 await viewModel.loadIfNeeded()
             }
             .onChange(of: viewModel.selectedRegion) { _, newRegion in
+                // Ownership contract: selectedRegion is the filter source of truth and may drive camera framing.
+                // Manual map pan/zoom remains exploratory and must not mutate selectedRegion.
                 updateCamera(for: newRegion)
             }
             .accessibilityIdentifier("pulse.map.home")

@@ -4,6 +4,7 @@ struct ExploreSignalsView: View {
     let events: [PulseEvent]
     let onSelect: (PulseEvent) -> Void
 
+    @StateObject private var viewModel = ExploreWorldPulseViewModel()
     @Environment(\.dismiss) private var dismiss
 
     private var visibleEvents: [PulseEvent] {
@@ -36,6 +37,9 @@ struct ExploreSignalsView: View {
                         dismiss()
                     }
                 }
+            }
+            .task {
+                await viewModel.loadIfNeeded()
             }
         }
     }
@@ -71,9 +75,13 @@ struct ExploreSignalsView: View {
                     .foregroundStyle(.white.opacity(0.7))
             }
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: PulseSpacing.small)], spacing: PulseSpacing.small) {
-                ForEach(CountryPulseProfile.previewSamples) { profile in
-                    CountryPulsePreviewCard(profile: profile)
+            if viewModel.countryProfiles.isEmpty {
+                CountryPulseLoadingCard()
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: PulseSpacing.small)], spacing: PulseSpacing.small) {
+                    ForEach(viewModel.countryProfiles) { profile in
+                        CountryPulsePreviewCard(profile: profile)
+                    }
                 }
             }
         }
@@ -121,6 +129,20 @@ struct ExploreSignalsView: View {
                 .foregroundStyle(.white)
             Text("Try changing region or filters from the Pulse map.")
                 .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.78))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .pulseGlassCard()
+    }
+}
+
+private struct CountryPulseLoadingCard: View {
+    var body: some View {
+        HStack(spacing: PulseSpacing.small) {
+            ProgressView()
+                .tint(.white)
+            Text("Loading country intelligence preview…")
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(.white.opacity(0.78))
         }
         .frame(maxWidth: .infinity, alignment: .leading)

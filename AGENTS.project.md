@@ -3,24 +3,26 @@
 # Pulseboard Project Guide for Agents
 
 ## Product intent
-- Audience: people who want a quick visual understanding of active natural events and alerts.
-- Problem: most open event feeds are text-heavy and hard to scan spatially.
-- Success criteria: a map-first, exploration-driven iPhone+iPad experience that loads real public data immediately on first launch without accounts, backend services, or API keys.
+- Audience: people who want a quick visual understanding of active global signals across safety, learning, and economy.
+- Problem: most public signal and indicator feeds are text-heavy, fragmented, and hard to scan spatially.
+- Success criteria: a map-first, exploration-driven iPhone+iPad experience that feels like a living world pulse, loads real public data immediately, and clearly separates live events from future country-level indicator layers.
 
 ## Current product phase
 Phase 2 is now in progress:
 1) Feature-oriented SwiftUI + MVVM structure is in place.
 2) Shared domain/event models and region filtering are established.
-3) Real USGS + EONET + GDACS + NWS integrations feed home experience with no mock runtime data.
+3) Real USGS + EONET + GDACS + NWS integrations feed the live Safety layer with no mock runtime data.
 4) Pulse Map home is map-first with a compact top bar, expandable filter tray, and dockable/minimizable Pulse Highlights surfaces on iPhone and iPad, including a lighter expanded signal-layer presentation plus calmer marker hierarchy, zoom-aware visibility, density-aware clustering, and smoothed zoom-band transitions.
    - Core control/card surfaces now use native iOS 26 Liquid Glass treatments (`glassEffect`, glass button styles, grouped glass containers) while preserving existing interaction flows.
 5) Event Detail is extracted into a dedicated feature with its own view model.
 6) Explore Signals sheet provides a separate browsing surface to reduce home clutter.
+7) World Pulse pillar framing is introduced: Safety is live now; Learning and Economy are staged for future indicator layers.
 
 Current reliability and UX goals:
 - Build stays warning-free.
 - Source failures are non-crashing and user-visible.
 - UI remains map-first and exploratory (not a list feed).
+- Current live-event work should read as the Safety layer of a broader World Pulse product.
 
 ## Architecture snapshot (current)
 - App entry: `PulseboardApp` -> `AppShellView` (Pulse + Settings tabs).
@@ -36,8 +38,9 @@ Current reliability and UX goals:
   - `NWSAlertsService` actor for active NWS alert fetch, normalization, and in-memory TTL caching.
   - Shared protocol: `PulseEventProviding`.
 - Domain:
-  - `PulseEvent`, `PulseCategory`, `PulseSeverity`, `PulseSource`, `PulseRegion`, `PulseTimeWindow`.
+  - `PulseEvent`, `PulseCategory`, `PulsePillar`, `PulseSeverity`, `PulseSource`, `PulseRegion`, `PulseTimeWindow`.
   - Region filtering is client-side via coordinate bounds.
+  - Current live events map to the Safety pillar.
 - Persistence: none in V1 foundation (network-only + memory cache).
 
 ## Concurrency rules (important)
@@ -50,12 +53,14 @@ Current reliability and UX goals:
 - First launch must work with live public feeds.
 - App remains map-first and exploration-first.
 - Source attribution must remain visible in-app.
+- Live safety events should not be forced to carry country-level indicator data; future Learning/Economy indicators should use separate models.
 
 ## UX rules
 - Home experience is a full-screen map with layered controls.
 - Primary interactions are chips, cards, markers, and panels.
 - iPad uses intentional composition (not simple scaled iPhone layout).
 - Failures show actionable messaging and keep existing data if available.
+- Copy should reinforce the World Pulse direction: Safety live now, Learning and Economy next.
 
 ## Coding conventions
 - Keep model/service types small and focused.
@@ -73,9 +78,10 @@ Current reliability and UX goals:
   - If local `plutil -lint` reports `Unexpected character { at line 1` for asset catalog JSON, but the command above and the Xcode build both pass, do not treat that lint output alone as an asset failure.
 
 ## Near-term priorities
-1) Expand home summaries/filters for mixed-source events and alert categories.
-2) Continue iPad-first polish, accessibility, and performance passes.
-3) Add focused tests for remaining source normalizers as they land.
+1) Reframe the Pulse home surface around World Pulse and the active Safety layer.
+2) Add Learning/Economy indicator-domain foundations without mixing them into `PulseEvent`.
+3) Continue iPad-first polish, accessibility, and performance passes.
+4) Add focused tests for remaining source normalizers as they land.
 
 ## Output expectations per patch
 - Summary of change

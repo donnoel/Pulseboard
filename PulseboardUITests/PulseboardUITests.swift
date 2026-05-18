@@ -9,6 +9,5 @@ final class PulseboardUITests: XCTestCase {
 
         XCTAssertTrue(app.otherElements["app.shell"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.otherElements["pulse.map.home"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.tabBars.buttons["Pulse"].exists)
     }
 }

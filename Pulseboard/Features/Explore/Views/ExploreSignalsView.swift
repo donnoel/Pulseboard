@@ -15,20 +15,8 @@ struct ExploreSignalsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: PulseSpacing.medium) {
                     headerCard
-
-                    if visibleEvents.isEmpty {
-                        emptyState
-                    } else {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: PulseSpacing.small)], spacing: PulseSpacing.small) {
-                            ForEach(visibleEvents) { event in
-                                ExploreSignalCard(event: event)
-                                    .onTapGesture {
-                                        onSelect(event)
-                                        dismiss()
-                                    }
-                            }
-                        }
-                    }
+                    countryIntelligenceSection
+                    liveSignalsSection
                 }
                 .padding(PulseSpacing.large)
             }
@@ -40,7 +28,7 @@ struct ExploreSignalsView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("Explore Signals")
+            .navigationTitle("Explore World Pulse")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -55,10 +43,10 @@ struct ExploreSignalsView: View {
     private var headerCard: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Signal Browser")
+                Text("World Pulse Browser")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
-                Text("Browse active events without crowding the map home.")
+                Text("Live safety signals are active now. Country intelligence previews Learning and Economy layers coming next.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.74))
             }
@@ -72,9 +60,63 @@ struct ExploreSignalsView: View {
         .pulseGlassCard(prominent: true)
     }
 
+    private var countryIntelligenceSection: some View {
+        VStack(alignment: .leading, spacing: PulseSpacing.small) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Country Intelligence")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("Early preview profiles for Learning and Economy indicators. These are local placeholders until sourced country data is integrated.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: PulseSpacing.small)], spacing: PulseSpacing.small) {
+                ForEach(CountryPulseProfile.previewSamples) { profile in
+                    CountryPulsePreviewCard(profile: profile)
+                }
+            }
+        }
+    }
+
+    private var liveSignalsSection: some View {
+        VStack(alignment: .leading, spacing: PulseSpacing.small) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Live Safety Signals")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("Current public feeds from the active Safety layer.")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+
+                Spacer()
+
+                Text("\(visibleEvents.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.76))
+            }
+
+            if visibleEvents.isEmpty {
+                emptyState
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: PulseSpacing.small)], spacing: PulseSpacing.small) {
+                    ForEach(visibleEvents) { event in
+                        ExploreSignalCard(event: event)
+                            .onTapGesture {
+                                onSelect(event)
+                                dismiss()
+                            }
+                    }
+                }
+            }
+        }
+    }
+
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: PulseSpacing.small) {
-            Text("No signals available")
+            Text("No live safety signals available")
                 .font(.headline)
                 .foregroundStyle(.white)
             Text("Try changing region or filters from the Pulse map.")
@@ -83,6 +125,86 @@ struct ExploreSignalsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .pulseGlassCard()
+    }
+}
+
+private struct CountryPulsePreviewCard: View {
+    let profile: CountryPulseProfile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PulseSpacing.small) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(profile.countryName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text(profile.countryCode)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.58))
+                }
+
+                Spacer()
+
+                if let updatedYear = profile.updatedYear {
+                    Text("Preview · \(updatedYear)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.58))
+                }
+            }
+
+            Text(profile.summary)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.74))
+                .lineLimit(3)
+
+            VStack(alignment: .leading, spacing: PulseSpacing.tiny) {
+                ForEach(profile.pillarSnapshots) { snapshot in
+                    CountryPillarStatusRow(snapshot: snapshot)
+                }
+            }
+        }
+        .pulseGlassCard()
+    }
+}
+
+private struct CountryPillarStatusRow: View {
+    let snapshot: CountryPillarSnapshot
+
+    var body: some View {
+        HStack(spacing: PulseSpacing.tiny) {
+            Image(systemName: snapshot.pillar.systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(statusTint)
+                .frame(width: 18)
+
+            Text(snapshot.pillar.title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.86))
+
+            Spacer()
+
+            Label(snapshot.status.title, systemImage: snapshot.status.systemImage)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(statusTint)
+                .labelStyle(.titleAndIcon)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(snapshot.pillar.title), \(snapshot.status.title)")
+    }
+
+    private var statusTint: Color {
+        switch snapshot.status {
+        case .favorable:
+            PulsePalette.success
+        case .stable:
+            PulsePalette.accent
+        case .watch:
+            PulsePalette.warning
+        case .elevated:
+            PulsePalette.danger
+        case .unknown:
+            .white.opacity(0.62)
+        }
     }
 }
 

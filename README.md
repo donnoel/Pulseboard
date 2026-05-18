@@ -1,10 +1,11 @@
 # Pulseboard
 
 ## Overview
-Pulseboard is a map-first iPhone + iPad SwiftUI app for exploring live natural events from direct public feeds.
+Pulseboard is a map-first iPhone + iPad SwiftUI app for exploring the living pulse of the world across safety, learning, and economic signals.
 
 Current V1 foundation:
-- Real-time USGS, NASA EONET, GDACS, and NWS integrations (no mock runtime data).
+- Safety layer is live now with real-time USGS, NASA EONET, GDACS, and NWS integrations (no mock runtime data).
+- Learning and Economy pillars are now part of the product direction and are staged for future indicator layers.
 - Unified event/domain models for multi-source expansion.
 - Region, category, and time-window filtering.
 - Layered map UI with chips, summary cards, clustered markers, and featured event panel.
@@ -64,4 +65,7 @@ Pulseboard/
 - [x] NASA EONET integration
 - [x] GDACS integration
 - [x] NWS alerts integration
+- [x] World Pulse pillar framing
+- [ ] Learning pillar indicator foundation
+- [ ] Economy pillar indicator foundation
 - [ ] Region polish

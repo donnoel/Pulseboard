@@ -273,7 +273,7 @@ struct PulseMapView: View {
     private var filterTray: some View {
         VStack(alignment: .leading, spacing: PulseSpacing.small) {
             HStack {
-                Label("Filter Tray", systemImage: "line.3.horizontal.decrease.circle.fill")
+                Label("Safety Layer", systemImage: "shield.lefthalf.filled")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Spacer()
@@ -333,19 +333,19 @@ struct PulseMapView: View {
     private var summaryCards: some View {
         HStack(spacing: PulseSpacing.small) {
             PulseSummaryCard(
-                title: "Signals",
+                title: "Live Signals",
                 value: "\(viewModel.metrics.totalCount)",
-                subtitle: "Visible live"
+                subtitle: "Safety layer"
             )
 
             PulseSummaryCard(
-                title: "High Impact",
+                title: "Safety Watch",
                 value: "\(viewModel.metrics.severeCount)",
                 subtitle: "High/Severe"
             )
 
             PulseSummaryCard(
-                title: "Recent",
+                title: "Recent Activity",
                 value: "\(viewModel.metrics.recentCount)",
                 subtitle: "Last 6h"
             )
@@ -390,7 +390,7 @@ struct PulseMapView: View {
                             .foregroundStyle(.white.opacity(0.86))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Minimize highlights")
+                    .accessibilityLabel("Minimize world pulse")
                 }
                 .padding(.top, PulseSpacing.tiny)
 
@@ -423,7 +423,7 @@ struct PulseMapView: View {
                 setOverlayState(.expanded)
             }
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Pulse Highlights Drawer")
+            .accessibilityLabel("World Pulse Drawer")
             .accessibilityHint("Drag up to expand, drag down to minimize")
             .animation(.spring(response: 0.3, dampingFraction: 0.86), value: overlayState)
         }
@@ -451,7 +451,7 @@ struct PulseMapView: View {
                                 .padding(.vertical, PulseSpacing.tiny)
                         }
                         .buttonStyle(.glass)
-                        .accessibilityLabel("Minimize highlights panel")
+                        .accessibilityLabel("Minimize world pulse panel")
 
                         PulseHighlightsPanel(
                             events: viewModel.featuredEvents,
@@ -479,7 +479,7 @@ struct PulseMapView: View {
             VStack(spacing: PulseSpacing.small) {
                 ProgressView()
                     .tint(.white)
-                Text("Loading live global event feeds…")
+                Text("Loading live safety signals…")
                     .foregroundStyle(.white.opacity(0.82))
                     .font(.footnote.weight(.medium))
             }
@@ -555,14 +555,14 @@ struct PulseMapView: View {
         Button {
             setOverlayState(.peek)
         } label: {
-            Label("Pulse Highlights", systemImage: "waveform.path.ecg.rectangle")
+            Label("World Pulse", systemImage: "waveform.path.ecg.rectangle")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, PulseSpacing.medium)
                 .padding(.vertical, PulseSpacing.small)
         }
         .buttonStyle(.glass)
-        .accessibilityLabel("Show pulse highlights")
+        .accessibilityLabel("Show world pulse")
     }
 
     private func updateCamera(for region: PulseRegion) {
@@ -862,7 +862,7 @@ private struct PulseHighlightsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: displayMode == .collapsed ? PulseSpacing.tiny : PulseSpacing.medium) {
             HStack {
-                Text("Pulse Highlights")
+                Text("World Pulse")
                     .font(displayMode == .collapsed ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
                     .foregroundStyle(.white)
                 Spacer()
@@ -908,7 +908,7 @@ private struct PulseHighlightsPanel: View {
                 Button {
                     onExplore()
                 } label: {
-                    Label("Explore Signals", systemImage: "scope")
+                    Label("Explore World Pulse", systemImage: "scope")
                         .font(.caption.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }
@@ -950,7 +950,7 @@ private struct PulseHighlightsPanel: View {
                 Button {
                     onExplore()
                 } label: {
-                    Label("Explore Signals", systemImage: "scope")
+                    Label("Explore World Pulse", systemImage: "scope")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                 }

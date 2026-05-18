@@ -68,6 +68,9 @@ Current reliability and UX goals:
 - Local verification commands:
   - `xcodebuild -scheme Pulseboard -configuration Debug -destination 'generic/platform=iOS Simulator' build`
   - `xcodebuild -scheme Pulseboard -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:PulseboardTests test`
+- Asset catalog JSON validation:
+  - Use `find Pulseboard/Assets.xcassets -name Contents.json -print0 | while IFS= read -r -d '' file; do plutil -convert json -o /dev/null "$file"; done`
+  - If local `plutil -lint` reports `Unexpected character { at line 1` for asset catalog JSON, but the command above and the Xcode build both pass, do not treat that lint output alone as an asset failure.
 
 ## Near-term priorities
 1) Expand home summaries/filters for mixed-source events and alert categories.

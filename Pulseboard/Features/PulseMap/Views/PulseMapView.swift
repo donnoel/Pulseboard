@@ -331,9 +331,9 @@ struct PulseMapView: View {
     private var summaryCards: some View {
         HStack(spacing: PulseSpacing.small) {
             PulseSummaryCard(
-                title: "Events",
+                title: "Signals",
                 value: "\(viewModel.metrics.totalCount)",
-                subtitle: "Visible"
+                subtitle: "Visible live"
             )
 
             PulseSummaryCard(

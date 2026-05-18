@@ -70,6 +70,60 @@ final class PulseMapViewModelRefreshTests: XCTestCase {
         XCTAssertEqual(viewModel.metrics.totalCount, 0)
     }
 
+    func testAlertCategoryFiltersNWSAlertsAndUpdatesMetrics() async {
+        let now = Date()
+        let earthquake = makeEvent(
+            id: "earthquake",
+            category: .earthquakes,
+            severity: .moderate,
+            source: .usgs,
+            timestamp: now
+        )
+        let nwsAlert = makeEvent(
+            id: "nws-alert",
+            category: .alerts,
+            severity: .high,
+            source: .nws,
+            timestamp: now
+        )
+        let gdacsHazard = makeEvent(
+            id: "gdacs-hazard",
+            category: .hazards,
+            severity: .low,
+            source: .gdacs,
+            timestamp: now.addingTimeInterval(-8 * 60 * 60)
+        )
+
+        let aggregator = PulseEventAggregatorService(
+            providers: [
+                TimeWindowStubProvider(
+                    source: .usgs,
+                    responses: [.hours24: .success([earthquake], delayMilliseconds: 0)]
+                ),
+                TimeWindowStubProvider(
+                    source: .nws,
+                    responses: [.hours24: .success([nwsAlert], delayMilliseconds: 0)]
+                ),
+                TimeWindowStubProvider(
+                    source: .gdacs,
+                    responses: [.hours24: .success([gdacsHazard], delayMilliseconds: 0)]
+                )
+            ]
+        )
+        let viewModel = PulseMapViewModel(eventAggregator: aggregator)
+
+        await viewModel.refresh()
+        XCTAssertEqual(viewModel.metrics.totalCount, 3)
+
+        viewModel.selectedCategory = .alerts
+
+        XCTAssertEqual(viewModel.filteredEvents.map(\.id), ["nws-nws-alert"])
+        XCTAssertEqual(viewModel.filteredEvents.first?.source, .nws)
+        XCTAssertEqual(viewModel.metrics.totalCount, 1)
+        XCTAssertEqual(viewModel.metrics.severeCount, 1)
+        XCTAssertEqual(viewModel.metrics.recentCount, 1)
+    }
+
     private func waitUntilIdle(_ viewModel: PulseMapViewModel) async {
         await waitForCondition { !viewModel.isLoading }
         XCTAssertFalse(viewModel.isLoading, "Expected refresh to complete before timeout.")
@@ -84,14 +138,20 @@ final class PulseMapViewModelRefreshTests: XCTestCase {
         XCTAssertTrue(condition(), "Expected condition to become true before timeout.")
     }
 
-    private func makeEvent(id: String, timestamp: Date) -> PulseEvent {
+    private func makeEvent(
+        id: String,
+        category: PulseCategory = .earthquakes,
+        severity: PulseSeverity = .moderate,
+        source: PulseSource = .usgs,
+        timestamp: Date
+    ) -> PulseEvent {
         PulseEvent(
             id: id,
             title: id,
             summary: "summary",
-            category: .earthquakes,
-            severity: .moderate,
-            source: .usgs,
+            category: category,
+            severity: severity,
+            source: source,
             timestamp: timestamp,
             coordinate: PulseCoordinate(latitude: 37.7749, longitude: -122.4194),
             link: nil,

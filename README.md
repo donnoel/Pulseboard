@@ -29,6 +29,21 @@ xcodebuild -scheme Pulseboard -configuration Debug -destination 'generic/platfor
 xcodebuild -scheme Pulseboard -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:PulseboardTests test
 ```
 
+### Asset Catalog Validation
+Use the build as the primary asset-catalog validation gate:
+```bash
+xcodebuild -scheme Pulseboard -configuration Debug -destination 'generic/platform=iOS Simulator' build
+```
+
+For asset catalog `Contents.json` parsing, use:
+```bash
+find Pulseboard/Assets.xcassets -name Contents.json -print0 | while IFS= read -r -d '' file; do
+  plutil -convert json -o /dev/null "$file"
+done
+```
+
+On this repo/toolchain, `plutil -lint` may report `Unexpected character { at line 1` for valid asset catalog JSON. If `plutil -convert json` and the Xcode build both pass, do not treat that lint output alone as an asset failure.
+
 ## Project Structure
 ```text
 Pulseboard/

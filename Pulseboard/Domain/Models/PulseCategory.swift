@@ -17,7 +17,7 @@ enum PulseCategory: String, CaseIterable, Codable, Identifiable, Sendable {
         case .hazards:
             "Hazards"
         case .alerts:
-            "Alerts"
+            "NWS Alerts"
         }
     }
 

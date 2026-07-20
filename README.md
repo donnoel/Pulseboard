@@ -69,3 +69,7 @@ Pulseboard/
 - [ ] Learning pillar indicator foundation
 - [ ] Economy pillar indicator foundation
 - [ ] Region polish
+
+## Credits
+
+Built with care by **Don Noel** and Codex collaboration.

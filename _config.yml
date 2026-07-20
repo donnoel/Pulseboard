@@ -1,0 +1,22 @@
+title: Pulseboard
+description: A map-first view of live public safety signals around the world.
+tagline: Live safety signals now. A wider world pulse ahead.
+project_label: Don Noel / Projects
+status_label: Safety live
+github_url: https://github.com/donnoel/Pulseboard
+url: https://donnoel.github.io
+baseurl: /Pulseboard
+lang: en-US
+
+remote_theme: donnoel/projects-theme@v1.0.0
+plugins:
+  - jekyll-remote-theme
+
+exclude:
+  - AGENTS.md
+  - AGENTS.project.md
+  - Pulseboard
+  - Pulseboard.xcodeproj
+  - PulseboardTests
+  - PulseboardUITests
+
